@@ -8,3 +8,66 @@ from sklearn.metrics import accuracy_score
 #load Data Set
 df= pd.read_csv('/IMDb Movies India.csv', encoding='latin1')
 
+missing_values = df.isnull().sum()
+print(missing_values)
+
+df.head(5)
+
+df.dtypes
+
+df['Year']=df['Year'].str.replace('-','')
+# Drop rows with missing values in 'rating' and 'votes' columns
+df = df.dropna(subset=['Rating', 'Name'])
+     
+if 'Duration' in df.columns:
+    df = df.drop('Duration', axis=1)
+    print("Dropped 'Duration' column.")
+else:
+    print("'Duration' column not found in DataFrame.")
+
+df.head()
+
+missing_values = df.isnull().sum()
+print(missing_values)
+
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+     
+
+# working with catagorical data and categorical features
+categorical_features = ['Genre', 'Director', 'Actor 1','Name', 'Actor 2', 'Actor 3', 'Year']
+numerical_features = [col for col in df.columns if col not in ['Rating', 'Votes'] + categorical_features]
+
+# Create transformers for preprocessing
+numeric_transformer = Pipeline(steps=[('scaler', StandardScaler())])
+categorical_transformer = Pipeline(steps=[('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+# Create a preprocessor using ColumnTransformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+# Define the model
+model = Pipeline(steps=[('preprocessor', preprocessor),
+                        ('regressor', RandomForestRegressor())])
+
+     
+# Split the data into training and testing sets
+X = df.drop('Rating', axis=1)
+y = df['Rating']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+print(f'Mean Squared Error: {mse}')
+
